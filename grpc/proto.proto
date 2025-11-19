@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option go_package = "Auction/grpc/proto";
+
+message BidRequest {
+    string bidder = 1;
+    uint32 amount = 2;
+}
+
+message BidResponse {
+    enum Outcome { FAIL = 0; SUCCESS = 1; EXCEPTION = 2; }
+    Outcome outcome = 1;
+    string message = 2;
+}
+
+// 
+message ResultRequest {}
+
+message ResultResponse {
+    bool closed = 1;
+    string winner = 2; // empty if none
+    uint32 winning_amount = 3;
+    uint32 current_highest = 4; // 0 if none
+}
+
+// Service exposed to the auctioners (clients):
+service AuctionService {
+    rpc Bid(BidRequest) returns (BidResponse);
+    rpc Result(ResultRequest) returns (ResultResponse);
+}
+
+// Internal service used for replication:
+service InternalService {
+    rpc Replicate(BidRequest) returns (BidResponse);
+}
+
+    

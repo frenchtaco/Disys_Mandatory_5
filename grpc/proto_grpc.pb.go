@@ -19,8 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuctionService_Bid_FullMethodName    = "/AuctionService/Bid"
-	AuctionService_Result_FullMethodName = "/AuctionService/Result"
+	AuctionService_Traffic_FullMethodName = "/AuctionService/Traffic"
 )
 
 // AuctionServiceClient is the client API for AuctionService service.
@@ -29,8 +28,7 @@ const (
 //
 // Service exposed to the auctioners (clients):
 type AuctionServiceClient interface {
-	Bid(ctx context.Context, in *BidRequest, opts ...grpc.CallOption) (*BidResponse, error)
-	Result(ctx context.Context, in *ResultRequest, opts ...grpc.CallOption) (*ResultResponse, error)
+	Traffic(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AuctionMessage, AuctionMessage], error)
 }
 
 type auctionServiceClient struct {
@@ -41,25 +39,18 @@ func NewAuctionServiceClient(cc grpc.ClientConnInterface) AuctionServiceClient {
 	return &auctionServiceClient{cc}
 }
 
-func (c *auctionServiceClient) Bid(ctx context.Context, in *BidRequest, opts ...grpc.CallOption) (*BidResponse, error) {
+func (c *auctionServiceClient) Traffic(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AuctionMessage, AuctionMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BidResponse)
-	err := c.cc.Invoke(ctx, AuctionService_Bid_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AuctionService_ServiceDesc.Streams[0], AuctionService_Traffic_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[AuctionMessage, AuctionMessage]{ClientStream: stream}
+	return x, nil
 }
 
-func (c *auctionServiceClient) Result(ctx context.Context, in *ResultRequest, opts ...grpc.CallOption) (*ResultResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResultResponse)
-	err := c.cc.Invoke(ctx, AuctionService_Result_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AuctionService_TrafficClient = grpc.BidiStreamingClient[AuctionMessage, AuctionMessage]
 
 // AuctionServiceServer is the server API for AuctionService service.
 // All implementations must embed UnimplementedAuctionServiceServer
@@ -67,8 +58,7 @@ func (c *auctionServiceClient) Result(ctx context.Context, in *ResultRequest, op
 //
 // Service exposed to the auctioners (clients):
 type AuctionServiceServer interface {
-	Bid(context.Context, *BidRequest) (*BidResponse, error)
-	Result(context.Context, *ResultRequest) (*ResultResponse, error)
+	Traffic(grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]) error
 	mustEmbedUnimplementedAuctionServiceServer()
 }
 
@@ -79,11 +69,8 @@ type AuctionServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuctionServiceServer struct{}
 
-func (UnimplementedAuctionServiceServer) Bid(context.Context, *BidRequest) (*BidResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
-}
-func (UnimplementedAuctionServiceServer) Result(context.Context, *ResultRequest) (*ResultResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Result not implemented")
+func (UnimplementedAuctionServiceServer) Traffic(grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Traffic not implemented")
 }
 func (UnimplementedAuctionServiceServer) mustEmbedUnimplementedAuctionServiceServer() {}
 func (UnimplementedAuctionServiceServer) testEmbeddedByValue()                        {}
@@ -106,41 +93,12 @@ func RegisterAuctionServiceServer(s grpc.ServiceRegistrar, srv AuctionServiceSer
 	s.RegisterService(&AuctionService_ServiceDesc, srv)
 }
 
-func _AuctionService_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BidRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuctionServiceServer).Bid(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuctionService_Bid_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuctionServiceServer).Bid(ctx, req.(*BidRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _AuctionService_Traffic_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AuctionServiceServer).Traffic(&grpc.GenericServerStream[AuctionMessage, AuctionMessage]{ServerStream: stream})
 }
 
-func _AuctionService_Result_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResultRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuctionServiceServer).Result(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuctionService_Result_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuctionServiceServer).Result(ctx, req.(*ResultRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AuctionService_TrafficServer = grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]
 
 // AuctionService_ServiceDesc is the grpc.ServiceDesc for AuctionService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -148,17 +106,15 @@ func _AuctionService_Result_Handler(srv interface{}, ctx context.Context, dec fu
 var AuctionService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "AuctionService",
 	HandlerType: (*AuctionServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Bid",
-			Handler:    _AuctionService_Bid_Handler,
-		},
-		{
-			MethodName: "Result",
-			Handler:    _AuctionService_Result_Handler,
+			StreamName:    "Traffic",
+			Handler:       _AuctionService_Traffic_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto.proto",
 }
 
@@ -172,7 +128,7 @@ const (
 //
 // Internal service used for replication:
 type InternalServiceClient interface {
-	Replicate(ctx context.Context, in *BidRequest, opts ...grpc.CallOption) (*BidResponse, error)
+	Replicate(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AuctionMessage, AuctionMessage], error)
 }
 
 type internalServiceClient struct {
@@ -183,15 +139,18 @@ func NewInternalServiceClient(cc grpc.ClientConnInterface) InternalServiceClient
 	return &internalServiceClient{cc}
 }
 
-func (c *internalServiceClient) Replicate(ctx context.Context, in *BidRequest, opts ...grpc.CallOption) (*BidResponse, error) {
+func (c *internalServiceClient) Replicate(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AuctionMessage, AuctionMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BidResponse)
-	err := c.cc.Invoke(ctx, InternalService_Replicate_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &InternalService_ServiceDesc.Streams[0], InternalService_Replicate_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[AuctionMessage, AuctionMessage]{ClientStream: stream}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalService_ReplicateClient = grpc.BidiStreamingClient[AuctionMessage, AuctionMessage]
 
 // InternalServiceServer is the server API for InternalService service.
 // All implementations must embed UnimplementedInternalServiceServer
@@ -199,7 +158,7 @@ func (c *internalServiceClient) Replicate(ctx context.Context, in *BidRequest, o
 //
 // Internal service used for replication:
 type InternalServiceServer interface {
-	Replicate(context.Context, *BidRequest) (*BidResponse, error)
+	Replicate(grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]) error
 	mustEmbedUnimplementedInternalServiceServer()
 }
 
@@ -210,8 +169,8 @@ type InternalServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInternalServiceServer struct{}
 
-func (UnimplementedInternalServiceServer) Replicate(context.Context, *BidRequest) (*BidResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Replicate not implemented")
+func (UnimplementedInternalServiceServer) Replicate(grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Replicate not implemented")
 }
 func (UnimplementedInternalServiceServer) mustEmbedUnimplementedInternalServiceServer() {}
 func (UnimplementedInternalServiceServer) testEmbeddedByValue()                         {}
@@ -234,23 +193,12 @@ func RegisterInternalServiceServer(s grpc.ServiceRegistrar, srv InternalServiceS
 	s.RegisterService(&InternalService_ServiceDesc, srv)
 }
 
-func _InternalService_Replicate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BidRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InternalServiceServer).Replicate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: InternalService_Replicate_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServiceServer).Replicate(ctx, req.(*BidRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _InternalService_Replicate_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(InternalServiceServer).Replicate(&grpc.GenericServerStream[AuctionMessage, AuctionMessage]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalService_ReplicateServer = grpc.BidiStreamingServer[AuctionMessage, AuctionMessage]
 
 // InternalService_ServiceDesc is the grpc.ServiceDesc for InternalService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -258,12 +206,14 @@ func _InternalService_Replicate_Handler(srv interface{}, ctx context.Context, de
 var InternalService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "InternalService",
 	HandlerType: (*InternalServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Replicate",
-			Handler:    _InternalService_Replicate_Handler,
+			StreamName:    "Replicate",
+			Handler:       _InternalService_Replicate_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto.proto",
 }

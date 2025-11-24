@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "Auction/grpc/proto";
+
+enum BID_STATUS {
+    BID_FAILED = 0;
+    BID_SUCCESS = 1;
+    BID_TOO_LOW = 2;
+}
+
+message T_Bid {
+    string bidder = 1;
+    uint32 amount = 2;
+}
+
+message T_Ack {
+    string bidder = 1;
+    BID_STATUS bidStatus = 2;
+}
+
+message T_Res {
+    uint32 highestBid = 1;
+    string highestBidder = 2;
+}
+
+// TODO: Add this to send a final message to each client...
+//message T_Final {
+    //uint32 highestBid = 1;
+    //string highestBidder = 2;
+    //uint32 yourHighestBid = 3;
+    //uint32 totalMoneySpent = 4;
+//}
+
+message Empty {}
+
+service AuctionService {
+    rpc Bid(T_Bid) returns (T_Ack); 
+    rpc GetFinalHighestBid(Empty) returns (T_Res); 
+    // rpc DeliverFinalResults(Empty) returns (T_Res);
+    // Try without the client-side "GetCurrentHighestBid"
+}

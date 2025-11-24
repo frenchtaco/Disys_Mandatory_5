@@ -9,7 +9,7 @@
 
 ---
 
-## 3. System Architecture Requirements
+## 2. System Architecture Requirements
 - Implement the system as **multiple nodes** (processes; *no threads*).
 - Each node runs in a **distinct process**.
 - Clients may send API requests to **any node**.
@@ -17,7 +17,7 @@
 
 ---
 
-## 4. API Requirements
+## 3. API Requirements
 
 ### `bid(amount)`
 - **Input:** `amount` (int)  
@@ -32,7 +32,7 @@
 
 ---
 
-## 5. Auction Semantics
+## 4. Auction Semantics
 The system must satisfy the following behaviors under any reasonable interleaving of requests:
 
 1. **First `bid` registers the bidder.**
@@ -45,7 +45,7 @@ The system must satisfy the following behaviors under any reasonable interleavin
 
 ---
 
-## 6. Fault Tolerance Assumptions and Requirements
+## 5. Fault Tolerance Assumptions and Requirements
 
 ### Network Model
 - **Reliable and ordered** message transport.

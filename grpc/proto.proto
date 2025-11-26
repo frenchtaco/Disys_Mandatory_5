@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option go_package = "Auction/grpc/proto";
+
+enum BID_STATUS {
+    BID_FAILED = 0;
+    BID_SUCCESS = 1;
+    BID_TOO_LOW = 2;
+}
+
+message T_Bid {
+    string bidder = 1;
+    uint32 amount = 2;
+}
+
+message T_BidResponse {
+    string bidder = 1;
+    BID_STATUS status = 2; 
+}
+
+message T_Result {
+    string highestBidder = 1;
+    uint32 highestBid = 2;
+}
+
+message T_StartAucReq {
+    int64 auctionStart     = 1;    // In nanoseconds
+    int64 auctionDuration  = 2;    // In nanoseconds
+    string initiator       = 3;    // For debugging
+}
+
+message Empty {}
+
+service AuctionService {
+    rpc Bid(T_Bid) returns (T_BidResponse);
+    rpc GetHighestBid(Empty) returns (T_Result);
+    rpc BroadcastResults(Empty) returns (stream T_Result);
+    rpc StartAuction(T_StartAucReq) returns (Empty);
+    // rpc CloseAuction(Empty) returns (Empty);             ! Turned out to not be necessary !
+}
